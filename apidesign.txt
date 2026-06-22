@@ -1,0 +1,30 @@
+For your social media app, before writing any new endpoint, spend 2 minutes writing:
+
+Endpoint:
+Authentication:
+Input:
+Validation:
+Business Rules:
+Database Operations:
+Response:
+
+For example:
+
+Endpoint: Like Post
+
+Authentication: Required
+
+Input:
+- postId
+
+Validation:
+- post exists
+
+Business Rules:
+- user can only like once
+
+Database:
+- add user to likes
+
+Response:
+- success
