@@ -1,11 +1,14 @@
 import { json, Request, Response } from "express";
+import jwt, { Secret, SignOptions, JwtPayload } from 'jsonwebtoken';
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { userLogoutService, userLoginService } from "../services/user.services.js";
 import { getAuthCookieOptions } from "../utils/cookieOptions.js";
-import { stringify } from "querystring";
+import { validateHeaderName } from "node:http";
+import { accesstokenExpiry } from "../types/env.js";
+import { secureHeapUsed } from "node:crypto";
 
 
 export const registerUser = async (req: Request, res: Response) => {
@@ -21,7 +24,7 @@ export const registerUser = async (req: Request, res: Response) => {
           : (cloudinaryResult as { url: string }).url;
       }
     }
-    const { username, email, password } = req.body;
+    const { username, email, password, bio } = req.body;
 
     if (!username || username === "") {
       throw new ApiError(400, "username is required");
@@ -36,8 +39,14 @@ export const registerUser = async (req: Request, res: Response) => {
     }
 
     if (!password || password === "") {
-      throw new ApiError(400, "passowrd is required");
+      throw new ApiError(400, "password is required");
     }
+
+    if (!bio) {
+      throw new ApiError(400, " bio is required");
+    }
+
+
 
     let existingUser = await User.findOne({
       $or: [{ username }, { email }],
@@ -57,12 +66,14 @@ export const registerUser = async (req: Request, res: Response) => {
         email,
         password,
         profilePic: profileImageUrl,
+        bio
       });
     } else {
       user = await User.create({
         username,
         email,
         password,
+        bio
       });
     }
 
@@ -113,8 +124,8 @@ export const loginUser = async (req: Request, res: Response) => {
       .cookie("refreshToken", refreshToken)
       .json({
         success: true,
+        user,
         accessToken,
-        user
       });
   } catch (error: unknown) {
     console.error("Error: ", error);
@@ -180,21 +191,14 @@ export const logoutUser = async (req: Request, res: Response) => {
 };
 
 
-export const getUser = async (req: Request, res: Response) :Promise<Response> => {
+export const getUser = async (req: Request, res: Response) => {
   try {
-    if (!req.user) {
-      throw new ApiError(401, "User not authenticated");
-    }
-    const authenticatedUser = req.user;
-    if (!authenticatedUser) {
-      throw new ApiError(400, 'Ownership failed')
-    }
-    const user = await User.findOne(authenticatedUser);
+    const user = req.user;
     if (!user) {
-      throw new ApiError(401, " User not found ");
+      throw new ApiError(400, ' Ownership failed')
     }
 
-    return res.status(200).json(new ApiResponse(201, { success: true, user: `${String(user)}\n`, }, "User fetched successfully"))
+    return res.status(200).json(new ApiResponse(200, user, " Current User fetched successfully "))
 
 
   } catch (error: unknown) {
@@ -256,3 +260,164 @@ export const deleteUser = async (req: Request, res: Response) => {
 
   }
 }
+
+
+export const getRefreshAndAccessTokens = async (req: Request, res: Response) => {
+  try {
+    const incomingRefreshToken = req.cookies.refreshToken || req.header('Authorization')?.replace('Bearer', "");
+    if (!incomingRefreshToken) {
+      throw new ApiError(401, 'Unauthorized requests');
+    }
+    const refreshTokenSecret: Secret = process.env.REFRESH_TOKEN_SECRET as Secret;
+    // const accessTokenSecret: Secret = process.env.ACCESS_TOKEN_SECRET as Secret;
+    const decodedToken = jwt.verify(incomingRefreshToken, refreshTokenSecret);
+
+    if (typeof decodedToken !== "object" || decodedToken === null || !("_id" in decodedToken)) {
+      throw new ApiError(401, "Invalid refreshToken");
+    }
+
+    const userid = decodedToken._id as string;
+
+    const user = await User.findById(userid);
+    if (!user) {
+      throw new ApiError(401, " Invalid refreshToken ");
+    }
+
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, " refreshToken  expired or invalid");
+
+    }
+
+    const newrefreshToken = user.generateRefreshToken();
+    const newaccessToken = user.generateAccessToken();
+
+    user.refreshToken = newrefreshToken;
+    user.save({ validateBeforeSave: false });
+
+    const loggedinUser = await User.findById(user._id).select(
+      "-password -refreshToken"
+    )
+
+    const cookieOptions = {
+      httpOnly: true,
+      secure: true
+    }
+
+    return res.status(201).cookie('refreshToken', newrefreshToken, cookieOptions).cookie('accessToken', newaccessToken, cookieOptions).json(new ApiResponse(201, {
+      refreshToken: newrefreshToken,
+      accesstoken: newaccessToken
+    }, ' Refresh Token successfully created '
+    ))
+
+  } catch (error: unknown) {
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        errors: []
+      })
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      errors: []
+    });
+
+  }
+}
+
+
+export const changePassword = async (req: Request, res: Response) => {
+  try {
+
+    const { oldPassword, newPassword } = req.body;
+    const userid = req.user?._id;
+    const user = await User.findById(userid);
+
+    if (!oldPassword || !newPassword) {
+      throw new ApiError(401, 'both old and new password are required');
+
+    }
+
+    if (!user) {
+      throw new ApiError(400, 'Unauthorized requests');
+
+    }
+
+    const ispassworcorrect = await user.isPasswordCorrect(oldPassword)
+
+    if (!ispassworcorrect) {
+      throw new ApiError(401, 'old password not correct ');
+
+    }
+
+    user.password = newPassword;
+
+
+    await user.save();
+
+    return res.status(200).json(new ApiResponse(200, 'Password Changed Successfuly'
+    ))
+
+  } catch (error: unknown) {
+    console.error(error);
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        errors: []
+      })
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      errors: []
+    });
+  }
+
+
+
+}
+
+
+export async function changeBio(req: Request, res: Response) {
+  try {
+    const { newBio } = req.body;
+    const userid = req.user?.id;
+
+    if (!newBio || newBio == null || newBio === undefined) {
+      throw new ApiError(400, ' Bio is missing ');
+
+    }
+    const user = await User.findById(userid);
+
+    if (!user) {
+      throw new ApiError(400, ' User not found ');
+    }
+
+    user.bio = newBio;
+    await user.save();
+
+    return res.status(200).json(new ApiResponse(200,{msg:user.bio},' Bio Changed Successfuly '));
+
+  } catch (error: unknown) {
+    console.error(error);
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        errors: []
+      })
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      errors: []
+    });
+  }
+}
+
+

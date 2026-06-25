@@ -7,7 +7,7 @@ import mongoose from 'mongoose';
 export interface IUser{
     username : string,
     email : string,
-    pasword : string,
+    password : string,
     bio ?: string,
     profilePic : string
     post : mongoose.Types.ObjectId;

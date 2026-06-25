@@ -69,7 +69,6 @@ async function userLogoutService(id: string | mongoose.Types.ObjectId) {
 }
 
 
-
 export { userLogoutService, userLoginService };
 
 
