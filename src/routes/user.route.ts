@@ -7,7 +7,9 @@ import {
     deleteUser,
     getRefreshAndAccessTokens,
     changePassword,
-    changeBio
+    addBio,
+    UpdateBio,
+    changeProfilePic
 
 } from '../controllers/user.controller.js';
 
@@ -28,7 +30,9 @@ router.post('/auth/accessrefreshtoken', getRefreshAndAccessTokens);
 router.get('/account/me', verifyJWT, getUser);
 router.delete('/account/delete-account', verifyJWT, deleteUser);
 router.post('/account/change-Password', verifyJWT, changePassword);
-router.post('/account/change-bio', verifyJWT, changeBio);
+router.post('/account/add-bio', verifyJWT, addBio);
+router.patch('/account/change-bio', verifyJWT, UpdateBio);
+router.patch('/account/change-ProfilePic', upload.single('profilePic'), verifyJWT, changeProfilePic);
 
 
 

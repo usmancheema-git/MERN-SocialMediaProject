@@ -9,7 +9,7 @@ import { getAuthCookieOptions } from "../utils/cookieOptions.js";
 import { validateHeaderName } from "node:http";
 import { accesstokenExpiry } from "../types/env.js";
 import { secureHeapUsed } from "node:crypto";
-
+import fs from 'fs';
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -24,7 +24,7 @@ export const registerUser = async (req: Request, res: Response) => {
           : (cloudinaryResult as { url: string }).url;
       }
     }
-    const { username, email, password, bio } = req.body;
+    const { username, email, password } = req.body;
 
     if (!username || username === "") {
       throw new ApiError(400, "username is required");
@@ -42,9 +42,7 @@ export const registerUser = async (req: Request, res: Response) => {
       throw new ApiError(400, "password is required");
     }
 
-    if (!bio) {
-      throw new ApiError(400, " bio is required");
-    }
+
 
 
 
@@ -65,15 +63,13 @@ export const registerUser = async (req: Request, res: Response) => {
         username,
         email,
         password,
-        profilePic: profileImageUrl,
-        bio
+        profilePic: profileImageUrl
       });
     } else {
       user = await User.create({
         username,
         email,
-        password,
-        bio
+        password
       });
     }
 
@@ -382,7 +378,7 @@ export const changePassword = async (req: Request, res: Response) => {
 }
 
 
-export async function changeBio(req: Request, res: Response) {
+export async function addBio(req: Request, res: Response) {
   try {
     const { newBio } = req.body;
     const userid = req.user?.id;
@@ -400,7 +396,43 @@ export async function changeBio(req: Request, res: Response) {
     user.bio = newBio;
     await user.save();
 
-    return res.status(200).json(new ApiResponse(200,{msg:user.bio},' Bio Changed Successfuly '));
+    return res.status(200).json(new ApiResponse(200, { msg: user.bio }, ' Bio Added Successfuly '));
+
+  } catch (error: unknown) {
+    console.error(error);
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        errors: []
+      })
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      errors: []
+    });
+  }
+}
+export async function UpdateBio(req: Request, res: Response) {
+  try {
+    const { updatedbio } = req.body;
+    const userid = req.user?.id;
+
+    if (!updatedbio || updatedbio === "" || updatedbio == null || updatedbio === undefined) {
+      throw new ApiError(400, ' Bio is missing ');
+
+    }
+    const user = await User.findByIdAndUpdate(userid, { $set: { bio: updatedbio } }, { new: true });
+
+    if (!user) {
+      throw new ApiError(400, ' User not found ');
+    }
+
+    // await user.save();
+
+    return res.status(200).json(new ApiResponse(200, { msg: user.bio }, ' Bio Updated  Successfuly '));
 
   } catch (error: unknown) {
     console.error(error);
@@ -421,3 +453,71 @@ export async function changeBio(req: Request, res: Response) {
 }
 
 
+
+export const changeProfilePic = async (req: Request, res: Response) => {
+  try {
+
+    const userid = req.user?._id;
+    const user = await User.findById(userid);
+    if (!user) {
+      throw new ApiError(401, ' Unauthorized requests  ');
+    }
+
+
+    if (!req.file?.path) {
+      throw new ApiError(400, " Profile image is required ");
+    }
+
+    let profileImageUrl;
+    const localfilepath = req.file?.path;
+
+
+    const uploadedImage = await uploadOnCloudinary(localfilepath);
+
+
+    if (!uploadedImage) {
+      throw new ApiError(500, "Error occurred while uploading image to Cloudinary");
+
+    }
+
+    profileImageUrl = uploadedImage;
+
+
+    user.profilePic = profileImageUrl;
+    await user.save();
+    return res.status(200).json(new ApiResponse(200, { profilepic: user.profilePic }, ' ProfilePic Updated  Successfuly '));
+
+
+  } catch (error: unknown) {
+    console.error("Error:", error);
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        errors: []
+      })
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      errors: []
+    });
+  }
+
+};
+
+
+
+
+// let profileImageLocalPath;
+//     let profileImageUrl;
+//     if (req.file?.path) {
+//       profileImageLocalPath = req.file.path;
+//       const cloudinaryResult = await uploadOnCloudinary(profileImageLocalPath);
+//       if (cloudinaryResult) {
+//         profileImageUrl = typeof cloudinaryResult === "string"
+//           ? cloudinaryResult
+//           : (cloudinaryResult as { url: string }).url;
+//       }
+//     }

@@ -11,12 +11,14 @@ cloudinary.config({
 });
 
 // Upload an image  
-const uploadOnCloudinary = async (localfilePath:string) => {
+const uploadOnCloudinary = async (localfilePath:string) :Promise<string | null>  => {
     try {
         if (!localfilePath) return null;
         const response = await cloudinary.uploader.upload(localfilePath, { resource_type: "auto" });
         console.log("-------------------File is uploaded on cloudinary--------------------\n", response.url);
         fs.unlinkSync(localfilePath);
+        console.log("-------------------File is uploaded on cloudinary--------------------\n",);
+
         return response.secure_url;
     } catch (error) {
         console.log(" Error occurred in uploading file: ", error); 

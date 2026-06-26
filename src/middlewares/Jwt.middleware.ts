@@ -2,25 +2,19 @@ import jwt from "jsonwebtoken";
 import { Request, Response, NextFunction } from "express";
 import { User } from "../models/user.model.js";
 
-const verifyJWT = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+const verifyJWT = async (req: Request,res: Response,next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
 
     if (!authHeader) {
-      return res.status(401).json({
-        message: "Authorization header missing",
-      });
+      return res.status(401).json({message: " Authorization header missing ",});
     }
 
     const token = authHeader.split(" ")[1];
 
     if (!token) {
       return res.status(401).json({
-        message: "Unauthorized access",
+        message: " Unauthorized access ",
       });
     }
 
