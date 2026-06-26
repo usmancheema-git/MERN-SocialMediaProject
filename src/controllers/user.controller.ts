@@ -10,6 +10,7 @@ import { validateHeaderName } from "node:http";
 import { accesstokenExpiry } from "../types/env.js";
 import { secureHeapUsed } from "node:crypto";
 import fs from 'fs';
+import { v2 as cloudinary } from 'cloudinary';
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -485,6 +486,11 @@ export const changeProfilePic = async (req: Request, res: Response) => {
 
     user.profilePic = profileImageUrl;
     await user.save();
+    
+
+    const oldimage = user.profilePic;
+    await removefromCloudinariy(oldimage);
+
     return res.status(200).json(new ApiResponse(200, { profilepic: user.profilePic }, ' ProfilePic Updated  Successfuly '));
 
 
@@ -507,17 +513,20 @@ export const changeProfilePic = async (req: Request, res: Response) => {
 
 };
 
+export const removefromCloudinariy = async (imageUrl: string) => {
+  try {
+    const urlArray = imageUrl.split('/');
+    const imagenamewithExtension = urlArray[urlArray.length - 1];
+    const imageNameArray = imagenamewithExtension.split(".");
+    console.log(imageNameArray);
+    const imageName = imageNameArray[0];
+    console.log(imageName);
 
+    await cloudinary.uploader.destroy(imageName);
+  } catch (error) {
+    console.log("Cloudiary Error :", error);
 
+  }
 
-// let profileImageLocalPath;
-//     let profileImageUrl;
-//     if (req.file?.path) {
-//       profileImageLocalPath = req.file.path;
-//       const cloudinaryResult = await uploadOnCloudinary(profileImageLocalPath);
-//       if (cloudinaryResult) {
-//         profileImageUrl = typeof cloudinaryResult === "string"
-//           ? cloudinaryResult
-//           : (cloudinaryResult as { url: string }).url;
-//       }
-//     }
+}
+

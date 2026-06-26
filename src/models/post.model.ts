@@ -1,12 +1,7 @@
 import mongoose from "mongoose";
 const postSchema = new mongoose.Schema(
     {
-        owner: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "User"
-            }
-        ],
+        
 
         content: {
             type: String,
@@ -17,17 +12,21 @@ const postSchema = new mongoose.Schema(
             type: String
         },
 
-        likes:[
-            {
-               type: mongoose.Schema.Types.ObjectId,
-                ref: "" 
-            }
-        ],
+        owner: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User"
+            },
+        // likes:[
+        //     {
+        //        type: mongoose.Schema.Types.ObjectId,
+        //         ref: "" 
+        //     }
+        // ],
 
         comments:[
             {
                type: mongoose.Schema.Types.ObjectId,
-                ref: "" 
+                ref: "Comment" 
             }
         ]
     },

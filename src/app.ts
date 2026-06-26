@@ -1,7 +1,8 @@
 import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { NextFunction, Request, Response, urlencoded } from 'express';
-import { router } from './routes/user.route.js';
+import userrouter from './routes/user.route';
+import postrouter from './routes/post.route.js';
 
 const app = express();
 
@@ -15,6 +16,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 // user routes app-Level
-app.use("/api/v1/users", router);
+app.use("/api/v1/users", userrouter);
+app.use("/api/v1/posts", postrouter);
 
 export default app;

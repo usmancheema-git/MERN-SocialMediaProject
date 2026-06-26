@@ -1,2 +1,3 @@
 const DB_NAME = 'MERNSocaialMedia';
-export default DB_NAME;
+export { DB_NAME };
+//# sourceMappingURL=constant.js.map

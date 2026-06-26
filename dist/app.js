@@ -1,4 +1,17 @@
+import cookieParser from 'cookie-parser';
+import cors from 'cors';
 import express from 'express';
+import { router } from './routes/user.route.js';
 const app = express();
-app.get('', (req, res) => res.send('yellow'));
+app.use(cors({
+    origin: process.env.CORS_ORIGIN ?? true,
+    credentials: true,
+}));
+app.use(express.json());
+// app.use(urlencoded({ extended: true, limit: "16kb" }));
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
+// user routes app-Level
+app.use("/api/v1/users", router);
 export default app;
+//# sourceMappingURL=app.js.map
