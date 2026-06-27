@@ -9,7 +9,8 @@ import {
     changePassword,
     addBio,
     UpdateBio,
-    changeProfilePic
+    changeProfilePic,
+    getUserProfileData
 
 } from '../controllers/user.controller.js';
 
@@ -34,8 +35,10 @@ router.post('/account/add-bio', verifyJWT, addBio);
 router.patch('/account/change-bio', verifyJWT, UpdateBio);
 router.patch('/account/change-ProfilePic', upload.single('profilePic'), verifyJWT, changeProfilePic);
 // router.route('/account/updateprofileImage').patch(verifyJWT ,  upload.single('profilePic'), changeProfilePic);
+router.get('/account/get-user-profile-data/:username',verifyJWT,getUserProfileData);
 
-
-
+router.get('/auth/test', (req, res) => {
+  res.send(" User router works");
+});
 
 export default router;

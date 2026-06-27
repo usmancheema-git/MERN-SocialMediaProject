@@ -10,6 +10,13 @@ app.use(cors({
     origin: process.env.CORS_ORIGIN ?? true,
     credentials: true,
 }));
+
+app.get("/", (req, res) => {
+    res.status(200).json({
+        message: "API is running"
+    });
+});
+
 app.use(express.json());
 // app.use(urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.urlencoded({ extended: true }));

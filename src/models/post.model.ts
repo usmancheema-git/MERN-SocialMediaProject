@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { IPostDocument } from "../types";
 const postSchema = new mongoose.Schema(
     {
         
@@ -34,4 +35,4 @@ const postSchema = new mongoose.Schema(
 )
 
 
-export const Post = mongoose.model('Post', postSchema)
+export const Post = mongoose.model<IPostDocument>('Post', postSchema)

@@ -3,8 +3,8 @@ import jwt, { Secret, SignOptions } from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 // import { accessTokenSecret, accesstokenExpiry, refreshTokenSecret, refreshTokenExpiry } from "../types/env";
 import { Sign } from "crypto";
-import { IUserDocument } from '../types/index'
-const userSchema = new mongoose.Schema(
+import { IPostDocument, IUserDocument } from '../types/index'
+const userSchema = new mongoose.Schema<IPostDocument , Model<IPostDocument>>(
     {
         username: {
             type: String,

@@ -11,6 +11,7 @@ import { accesstokenExpiry } from "../types/env.js";
 import { secureHeapUsed } from "node:crypto";
 import fs from 'fs';
 import { v2 as cloudinary } from 'cloudinary';
+import mongoose from "mongoose";
 
 export const registerUser = async (req: Request, res: Response) => {
   try {
@@ -486,7 +487,7 @@ export const changeProfilePic = async (req: Request, res: Response) => {
 
     user.profilePic = profileImageUrl;
     await user.save();
-    
+
 
     const oldimage = user.profilePic;
     await removefromCloudinariy(oldimage);
@@ -530,3 +531,92 @@ export const removefromCloudinariy = async (imageUrl: string) => {
 
 }
 
+
+
+//  user profile showing using mon
+
+
+export const getUserProfileData = async (req: Request, res: Response) => {
+  try {
+    const {username } =  req.params;
+    
+    if (!username) {
+      throw new ApiError(401, 'Unauthorized')
+    }
+
+    const profileData = await User.aggregate([
+      {
+        $match: {
+          username: username
+        }
+      },
+      {
+        $lookup: {
+          from: 'posts',
+          localField: "_id",
+          foreignField: "owner",
+          as: "posts"
+        },
+      },
+
+      {
+        $project: {
+          usrname: 1,
+          email: 1,
+          bio: 1,
+          profileImage: 1,
+          postCount: { $size: "$posts" },
+          followersCount: { $size: "$followers" },
+          followingCount: { $size: "$following" },
+      }
+    }
+    ])
+
+
+
+    if (!profileData.length) {
+        throw new ApiError(404,'user not found');
+    }
+return res.status(200).json(new ApiResponse(200, profileData[0], ' User data fetcehd Successfuly '));
+
+  } catch (error: unknown) {
+    console.error("Error:", error);
+    if (error instanceof ApiError) {
+      return res.status(error.statusCode).json({
+        success: false,
+        message: error.message,
+        errors: []
+      })
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      errors: []
+    });
+  }
+}
+
+
+
+
+export const followerUnfollowUser = async (req: Request, res: Response) => {
+    try {
+  
+    } catch (error:unknown) {
+        console.error("Error:", error);
+        if (error instanceof ApiError) {
+            return res.status(error.statusCode).json({
+                success: false,
+                message: error.message,
+                errors: []
+            })
+        }
+
+        return res.status(500).json({
+            success: false,
+            message: "Internal Server Error",
+            errors: []
+        });
+    }
+}
